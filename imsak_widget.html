@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;800&display=swap');
+
+        :root {
+            --primary: #0f5132;
+            --gold: #c5a059;
+            --fasting-bg: #b2ff59; /* Hijau (Puasa) */
+            --night-bg: #e3f2fd;   /* Biru (Malam) */
+            --past-bg: #eeeeee;    /* Abu (Lewat) */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+            background-color: var(--past-bg); /* Default */
+            transition: background-color 0.5s ease;
+        }
+
+        /* State Classes */
+        body.fasting { background-color: var(--fasting-bg); }
+        body.night { background-color: var(--night-bg); }
+        
+        .container {
+            width: 100%;
+            padding: 10px;
+        }
+
+        .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .timer {
+            font-size: 32px;
+            font-weight: 800;
+            line-height: 1;
+            color: #2c3e50;
+        }
+
+        .target-time {
+            font-size: 12px;
+            background: rgba(0,0,0,0.05);
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 5px;
+            display: inline-block;
+            color: #555;
+        }
+
+        .icon { font-size: 24px; margin-bottom: 5px; display: block; }
+
+    </style>
+</head>
+<body id="bodyWidget">
+
+    <div class="container">
+        <span class="icon" id="statusIcon">⏳</span>
+        
+        <div class="label" id="statusLabel">Memuat...</div>
+
+        <div class="timer" id="mainTimer">--:--:--</div>
+
+        <div class="target-time" id="targetClock">--:--</div>
+    </div>
+
+    <script>
+        // DATA JADWAL (Sama persis dengan sebelumnya)
+        const scheduleData = [
+            { d: "Kamis, 19 Feb", im: "04.28", ma: "18.20" },
+            { d: "Jumat, 20 Feb", im: "04.28", ma: "18.19" },
+            { d: "Sabtu, 21 Feb", im: "04.28", ma: "18.19" },
+            { d: "Minggu, 22 Feb", im: "04.28", ma: "18.19" },
+            { d: "Senin, 23 Feb", im: "04.28", ma: "18.18" },
+            { d: "Selasa, 24 Feb", im: "04.28", ma: "18.18" },
+            { d: "Rabu, 25 Feb", im: "04.29", ma: "18.18" },
+            { d: "Kamis, 26 Feb", im: "04.29", ma: "18.17" },
+            { d: "Jumat, 27 Feb", im: "04.29", ma: "18.17" },
+            { d: "Sabtu, 28 Feb", im: "04.29", ma: "18.17" },
+            { d: "Minggu, 1 Mar", im: "04.29", ma: "18.16" },
+            { d: "Senin, 2 Mar", im: "04.29", ma: "18.16" },
+            { d: "Selasa, 3 Mar", im: "04.29", ma: "18.15" },
+            { d: "Rabu, 4 Mar", im: "04.29", ma: "18.15" },
+            { d: "Kamis, 5 Mar", im: "04.29", ma: "18.15" },
+            { d: "Jumat, 6 Mar", im: "04.29", ma: "18.14" },
+            { d: "Sabtu, 7 Mar", im: "04.29", ma: "18.14" },
+            { d: "Minggu, 8 Mar", im: "04.29", ma: "18.13" },
+            { d: "Senin, 9 Mar", im: "04.29", ma: "18.13" },
+            { d: "Selasa, 10 Mar", im: "04.29", ma: "18.12" },
+            { d: "Rabu, 11 Mar", im: "04.29", ma: "18.12" },
+            { d: "Kamis, 12 Mar", im: "04.29", ma: "18.11" },
+            { d: "Jumat, 13 Mar", im: "04.29", ma: "18.11" },
+            { d: "Sabtu, 14 Mar", im: "04.29", ma: "18.10" },
+            { d: "Minggu, 15 Mar", im: "04.29", ma: "18.10" },
+            { d: "Senin, 16 Mar", im: "04.29", ma: "18.10" },
+            { d: "Selasa, 17 Mar", im: "04.29", ma: "18.09" },
+            { d: "Rabu, 18 Mar", im: "04.29", ma: "18.09" },
+            { d: "Kamis, 19 Mar", im: "04.29", ma: "18.08" },
+            { d: "Jumat, 20 Mar", im: "04.29", ma: "18.08" }
+        ];
+
+        function parseDateTime(dateString, timeString) {
+            const parts = dateString.split(' ');
+            if (parts.length < 3) return null;
+            const day = parseInt(parts[1], 10);
+            const monthMap = { "Jan": 0, "Feb": 1, "Mar": 2, "Apr": 3 };
+            const month = monthMap[parts[2]];
+            const today = new Date();
+            const year = today.getFullYear();
+            const timeParts = timeString.split('.');
+            return new Date(year, month, day, parseInt(timeParts[0]), parseInt(timeParts[1]), 0);
+        }
+
+        const bodyEl = document.getElementById('bodyWidget');
+        const statusLabel = document.getElementById('statusLabel');
+        const statusIcon = document.getElementById('statusIcon');
+        const mainTimer = document.getElementById('mainTimer');
+        const targetClock = document.getElementById('targetClock');
+
+        // Parse Data Sekali Saja
+        const allImsakTimes = [];
+        const allMaghribTimes = [];
+        
+        scheduleData.forEach((item, index) => {
+            const imsak = parseDateTime(item.d, item.im);
+            const maghrib = parseDateTime(item.d, item.ma);
+            if(imsak) allImsakTimes.push(imsak);
+            if(maghrib) allMaghribTimes.push(maghrib);
+        });
+
+        function updateWidget() {
+            const now = new Date();
+            let targetTime = null;
+            let mode = ""; // fasting, night, past
+
+            // Cari Imsak & Maghrib terdekat yang belum lewat (utk Timer)
+            const nextImsak = allImsakTimes.find(t => t > now);
+            const nextMaghrib = allMaghribTimes.find(t => t > now);
+
+            // Logika Penentuan Mode Background & Target Timer
+            // 1. Cek apakah sekarang sedang puasa (Antara Imsak Hari Ini & Maghrib Hari Ini)
+            // Kita cari maghrib hari ini:
+            const todayMaghrib = allMaghribTimes.find(t => 
+                t.getDate() === now.getDate() && 
+                t.getMonth() === now.getMonth()
+            );
+            const todayImsak = allImsakTimes.find(t => 
+                t.getDate() === now.getDate() && 
+                t.getMonth() === now.getMonth()
+            );
+
+            if (todayImsak && todayMaghrib) {
+                if (now >= todayImsak && now < todayMaghrib) {
+                    // SEDANG PUASA -> Menuju Maghrib
+                    mode = "fasting";
+                    targetTime = todayMaghrib;
+                    statusLabel.textContent = "MENUJU BERBUKA";
+                    statusIcon.textContent = "🕌"; // Masjid/Bedug
+                    bodyEl.className = "fasting";
+                } else if (now >= todayMaghrib) {
+                    // SUDAH MAGHRIB HARI INI -> Menuju Imsak Besok (Mode Biru)
+                    mode = "night";
+                    targetTime = nextImsak; // Imsak terdekat pasti besok
+                    statusLabel.textContent = "WAKTU ISTIRAHAT/SAHUR";
+                    statusIcon.textContent = "🌙"; // Bulan
+                    bodyEl.className = "night";
+                } else {
+                    // BELUM IMSAK HARI INI (Dini hari) -> Menuju Imsak Hari Ini
+                    mode = "night";
+                    targetTime = todayImsak;
+                    statusLabel.textContent = "MENUJU IMSAK";
+                    statusIcon.textContent = "🍽️";
+                    bodyEl.className = "night";
+                }
+            } else {
+                // Di luar tanggal di atas
+                mode = "past";
+                statusLabel.textContent = "JADWAL SELESAI";
+                bodyEl.className = "";
+            }
+
+            // Update Timer
+            if (targetTime) {
+                const diff = targetTime - now;
+                const h = Math.floor(diff / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                mainTimer.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                
+                // Update Target Jam Kecil di bawah
+                const jam = targetTime.getHours().toString().padStart(2,'0');
+                const menit = targetTime.getMinutes().toString().padStart(2,'0');
+                targetClock.textContent = `Target: ${jam}.${menit}`;
+            } else {
+                mainTimer.textContent = "00:00:00";
+                targetClock.textContent = "-";
+            }
+        }
+
+        setInterval(updateWidget, 1000);
+        updateWidget();
+    </script>
+</body>
+</html>
