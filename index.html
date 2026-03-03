@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Jadwal Puasa & Solat</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
 
         :root {
             --primary: #0f5132;
@@ -25,7 +26,7 @@
             align-items: center;
             text-align: center;
             overflow: hidden;
-            background-color: var(--past-bg); /* Default */
+            background-color: var(--past-bg);
             transition: background-color 0.5s ease;
         }
 
@@ -35,87 +36,140 @@
         
         .container {
             width: 100%;
-            padding: 10px;
+            max-width: 400px;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
+        /* Header: Tanggal & Jam Sekarang */
+        .header-info {
+            background: rgba(255, 255, 255, 0.4);
+            padding: 10px 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .current-date {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+        }
+        .current-time {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 1px;
+            margin-top: -2px;
+        }
+
+        /* Widget Utama (Imsak/Magrib) */
         .label {
-            font-size: 12px;
+            font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: var(--primary);
             font-weight: 600;
             margin-bottom: 5px;
         }
-
         .timer {
-            font-size: 32px;
+            font-size: 38px;
             font-weight: 800;
             line-height: 1;
             color: #2c3e50;
         }
-
         .target-time {
             font-size: 12px;
             background: rgba(0,0,0,0.05);
-            padding: 2px 8px;
+            padding: 3px 10px;
             border-radius: 10px;
-            margin-top: 5px;
+            margin-top: 8px;
             display: inline-block;
             color: #555;
+            font-weight: 600;
+        }
+        .icon { font-size: 30px; margin-bottom: 5px; display: block; }
+
+        /* Separator */
+        .divider {
+            height: 1px;
+            background: rgba(0, 0, 0, 0.1);
+            margin: 25px 0;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
         }
 
-        .icon { font-size: 24px; margin-bottom: 5px; display: block; }
-
+        /* Widget Sekunder (Waktu Solat Berikutnya) */
+        .prayer-widget .label {
+            color: #e67e22;
+            font-size: 12px;
+        }
+        .prayer-timer {
+            font-size: 28px;
+            color: #d35400;
+        }
     </style>
 </head>
 <body id="bodyWidget">
 
     <div class="container">
+        <div class="header-info">
+            <div class="current-date" id="currentDate">Memuat tanggal...</div>
+            <div class="current-time" id="currentTime">--:--:--</div>
+        </div>
+
         <span class="icon" id="statusIcon">⏳</span>
-        
         <div class="label" id="statusLabel">Memuat...</div>
-
         <div class="timer" id="mainTimer">--:--:--</div>
-
         <div class="target-time" id="targetClock">--:--</div>
+
+        <div class="divider"></div>
+
+        <div class="prayer-widget">
+            <div class="label" id="nextPrayerLabel">MENUJU SOLAT...</div>
+            <div class="timer prayer-timer" id="nextPrayerTimer">--:--:--</div>
+            <div class="target-time" id="nextPrayerClock">--:--</div>
+        </div>
     </div>
 
     <script>
-        // DATA JADWAL (Sama persis dengan sebelumnya)
+        // DATA JADWAL LENGKAP
         const scheduleData = [
-            { d: "Kamis, 19 Feb", im: "04.28", ma: "18.20" },
-            { d: "Jumat, 20 Feb", im: "04.28", ma: "18.19" },
-            { d: "Sabtu, 21 Feb", im: "04.28", ma: "18.19" },
-            { d: "Minggu, 22 Feb", im: "04.28", ma: "18.19" },
-            { d: "Senin, 23 Feb", im: "04.28", ma: "18.18" },
-            { d: "Selasa, 24 Feb", im: "04.28", ma: "18.18" },
-            { d: "Rabu, 25 Feb", im: "04.29", ma: "18.18" },
-            { d: "Kamis, 26 Feb", im: "04.29", ma: "18.17" },
-            { d: "Jumat, 27 Feb", im: "04.29", ma: "18.17" },
-            { d: "Sabtu, 28 Feb", im: "04.29", ma: "18.17" },
-            { d: "Minggu, 1 Mar", im: "04.29", ma: "18.16" },
-            { d: "Senin, 2 Mar", im: "04.29", ma: "18.16" },
-            { d: "Selasa, 3 Mar", im: "04.29", ma: "18.15" },
-            { d: "Rabu, 4 Mar", im: "04.29", ma: "18.15" },
-            { d: "Kamis, 5 Mar", im: "04.29", ma: "18.15" },
-            { d: "Jumat, 6 Mar", im: "04.29", ma: "18.14" },
-            { d: "Sabtu, 7 Mar", im: "04.29", ma: "18.14" },
-            { d: "Minggu, 8 Mar", im: "04.29", ma: "18.13" },
-            { d: "Senin, 9 Mar", im: "04.29", ma: "18.13" },
-            { d: "Selasa, 10 Mar", im: "04.29", ma: "18.12" },
-            { d: "Rabu, 11 Mar", im: "04.29", ma: "18.12" },
-            { d: "Kamis, 12 Mar", im: "04.29", ma: "18.11" },
-            { d: "Jumat, 13 Mar", im: "04.29", ma: "18.11" },
-            { d: "Sabtu, 14 Mar", im: "04.29", ma: "18.10" },
-            { d: "Minggu, 15 Mar", im: "04.29", ma: "18.10" },
-            { d: "Senin, 16 Mar", im: "04.29", ma: "18.10" },
-            { d: "Selasa, 17 Mar", im: "04.29", ma: "18.09" },
-            { d: "Rabu, 18 Mar", im: "04.29", ma: "18.09" },
-            { d: "Kamis, 19 Mar", im: "04.29", ma: "18.08" },
-            { d: "Jumat, 20 Mar", im: "04.29", ma: "18.08" }
+            { r: 1, d: "Kamis, 19 Feb", im: "04.28", su: "04.38", zu: "12.07", as: "15.16", ma: "18.20", is: "19.26" },
+            { r: 2, d: "Jumat, 20 Feb", im: "04.28", su: "04.38", zu: "12.07", as: "15.15", ma: "18.19", is: "19.25" },
+            { r: 3, d: "Sabtu, 21 Feb", im: "04.28", su: "04.38", zu: "12.07", as: "15.15", ma: "18.19", is: "19.25" },
+            { r: 4, d: "Minggu, 22 Feb", im: "04.28", su: "04.38", zu: "12.07", as: "15.14", ma: "18.19", is: "19.24" },
+            { r: 5, d: "Senin, 23 Feb", im: "04.28", su: "04.38", zu: "12.06", as: "15.13", ma: "18.18", is: "19.24" },
+            { r: 6, d: "Selasa, 24 Feb", im: "04.28", su: "04.38", zu: "12.06", as: "15.12", ma: "18.18", is: "19.24" },
+            { r: 7, d: "Rabu, 25 Feb", im: "04.29", su: "04.39", zu: "12.06", as: "15.11", ma: "18.18", is: "19.23" },
+            { r: 8, d: "Kamis, 26 Feb", im: "04.29", su: "04.39", zu: "12.06", as: "15.10", ma: "18.17", is: "19.23" },
+            { r: 9, d: "Jumat, 27 Feb", im: "04.29", su: "04.39", zu: "12.06", as: "15.09", ma: "18.17", is: "19.22" },
+            { r: 10, d: "Sabtu, 28 Feb", im: "04.29", su: "04.39", zu: "12.06", as: "15.08", ma: "18.17", is: "19.22" },
+            { r: 11, d: "Minggu, 1 Mar", im: "04.29", su: "04.39", zu: "12.05", as: "15.07", ma: "18.16", is: "19.21" },
+            { r: 12, d: "Senin, 2 Mar", im: "04.29", su: "04.39", zu: "12.05", as: "15.06", ma: "18.16", is: "19.21" },
+            { r: 13, d: "Selasa, 3 Mar", im: "04.29", su: "04.39", zu: "12.05", as: "15.05", ma: "18.15", is: "19.20" },
+            { r: 14, d: "Rabu, 4 Mar", im: "04.29", su: "04.39", zu: "12.05", as: "15.06", ma: "18.15", is: "19.20" },
+            { r: 15, d: "Kamis, 5 Mar", im: "04.29", su: "04.39", zu: "12.05", as: "15.06", ma: "18.15", is: "19.20" },
+            { r: 16, d: "Jumat, 6 Mar", im: "04.29", su: "04.39", zu: "12.04", as: "15.07", ma: "18.14", is: "19.19" },
+            { r: 17, d: "Sabtu, 7 Mar", im: "04.29", su: "04.39", zu: "12.04", as: "15.07", ma: "18.14", is: "19.19" },
+            { r: 18, d: "Minggu, 8 Mar", im: "04.29", su: "04.39", zu: "12.04", as: "15.08", ma: "18.13", is: "19.18" },
+            { r: 19, d: "Senin, 9 Mar", im: "04.29", su: "04.39", zu: "12.04", as: "15.08", ma: "18.13", is: "19.18" },
+            { r: 20, d: "Selasa, 10 Mar", im: "04.29", su: "04.39", zu: "12.03", as: "15.08", ma: "18.12", is: "19.17" },
+            { r: 21, d: "Rabu, 11 Mar", im: "04.29", su: "04.39", zu: "12.03", as: "15.09", ma: "18.12", is: "19.17" },
+            { r: 22, d: "Kamis, 12 Mar", im: "04.29", su: "04.39", zu: "12.03", as: "15.09", ma: "18.11", is: "19.16" },
+            { r: 23, d: "Jumat, 13 Mar", im: "04.29", su: "04.39", zu: "12.03", as: "15.09", ma: "18.11", is: "19.16" },
+            { r: 24, d: "Sabtu, 14 Mar", im: "04.29", su: "04.39", zu: "12.02", as: "15.09", ma: "18.10", is: "19.15" },
+            { r: 25, d: "Minggu, 15 Mar", im: "04.29", su: "04.39", zu: "12.02", as: "15.10", ma: "18.10", is: "19.15" },
+            { r: 26, d: "Senin, 16 Mar", im: "04.29", su: "04.39", zu: "12.02", as: "15.10", ma: "18.10", is: "19.14" },
+            { r: 27, d: "Selasa, 17 Mar", im: "04.29", su: "04.39", zu: "12.01", as: "15.10", ma: "18.09", is: "19.14" },
+            { r: 28, d: "Rabu, 18 Mar", im: "04.29", su: "04.39", zu: "12.01", as: "15.10", ma: "18.09", is: "19.13" },
+            { r: 29, d: "Kamis, 19 Mar", im: "04.29", su: "04.39", zu: "12.01", as: "15.11", ma: "18.08", is: "19.13" },
+            { r: 30, d: "Jumat, 20 Mar", im: "04.29", su: "04.39", zu: "12.01", as: "15.11", ma: "18.08", is: "19.12" }
         ];
 
         function parseDateTime(dateString, timeString) {
+            if (!timeString) return null;
             const parts = dateString.split(' ');
             if (parts.length < 3) return null;
             const day = parseInt(parts[1], 10);
@@ -132,56 +186,83 @@
         const statusIcon = document.getElementById('statusIcon');
         const mainTimer = document.getElementById('mainTimer');
         const targetClock = document.getElementById('targetClock');
+        
+        const elDate = document.getElementById('currentDate');
+        const elTime = document.getElementById('currentTime');
+        const elNextPrayerLabel = document.getElementById('nextPrayerLabel');
+        const elNextPrayerTimer = document.getElementById('nextPrayerTimer');
+        const elNextPrayerClock = document.getElementById('nextPrayerClock');
 
-        // Parse Data Sekali Saja
+        // Parse Data
         const allImsakTimes = [];
         const allMaghribTimes = [];
+        const allPrayers = [];
         
-        scheduleData.forEach((item, index) => {
+        scheduleData.forEach((item) => {
             const imsak = parseDateTime(item.d, item.im);
+            const subuh = parseDateTime(item.d, item.su);
+            const zuhur = parseDateTime(item.d, item.zu); // Menggunakan item.zu dari data kamu
+            const ashar = parseDateTime(item.d, item.as);
             const maghrib = parseDateTime(item.d, item.ma);
+            const isya = parseDateTime(item.d, item.is);
+
             if(imsak) allImsakTimes.push(imsak);
             if(maghrib) allMaghribTimes.push(maghrib);
+
+            // Masukkan ke array jadwal solat harian untuk countdown yang terpisah
+            if(subuh) allPrayers.push({ name: 'Subuh', time: subuh });
+            if(zuhur) allPrayers.push({ name: 'Zuhur', time: zuhur });
+            if(ashar) allPrayers.push({ name: 'Ashar', time: ashar });
+            if(maghrib) allPrayers.push({ name: 'Magrib', time: maghrib });
+            if(isya) allPrayers.push({ name: 'Isya', time: isya });
         });
+
+        // Urutkan semua jadwal solat dari waktu terawal hingga terakhir
+        allPrayers.sort((a, b) => a.time - b.time);
+
+        function formatTimeDiff(diff) {
+            const h = Math.floor(diff / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function formatClock(dateObj) {
+            return `${dateObj.getHours().toString().padStart(2,'0')}.${dateObj.getMinutes().toString().padStart(2,'0')}`;
+        }
 
         function updateWidget() {
             const now = new Date();
-            let targetTime = null;
-            let mode = ""; // fasting, night, past
 
-            // Cari Imsak & Maghrib terdekat yang belum lewat (utk Timer)
+            // 1. UPDATE TANGGAL & JAM SEKARANG
+            const optionsDate = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            elDate.textContent = now.toLocaleDateString('id-ID', optionsDate);
+            elTime.textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            // 2. UPDATE LOGIKA UTAMA (IMSAK / MAGRIB)
+            let targetTime = null;
+            let mode = ""; 
+
             const nextImsak = allImsakTimes.find(t => t > now);
             const nextMaghrib = allMaghribTimes.find(t => t > now);
 
-            // Logika Penentuan Mode Background & Target Timer
-            // 1. Cek apakah sekarang sedang puasa (Antara Imsak Hari Ini & Maghrib Hari Ini)
-            // Kita cari maghrib hari ini:
-            const todayMaghrib = allMaghribTimes.find(t => 
-                t.getDate() === now.getDate() && 
-                t.getMonth() === now.getMonth()
-            );
-            const todayImsak = allImsakTimes.find(t => 
-                t.getDate() === now.getDate() && 
-                t.getMonth() === now.getMonth()
-            );
+            const todayMaghrib = allMaghribTimes.find(t => t.getDate() === now.getDate() && t.getMonth() === now.getMonth());
+            const todayImsak = allImsakTimes.find(t => t.getDate() === now.getDate() && t.getMonth() === now.getMonth());
 
             if (todayImsak && todayMaghrib) {
                 if (now >= todayImsak && now < todayMaghrib) {
-                    // SEDANG PUASA -> Menuju Maghrib
                     mode = "fasting";
                     targetTime = todayMaghrib;
                     statusLabel.textContent = "MENUJU BERBUKA";
-                    statusIcon.textContent = "🕌"; // Masjid/Bedug
+                    statusIcon.textContent = "🕌"; 
                     bodyEl.className = "fasting";
                 } else if (now >= todayMaghrib) {
-                    // SUDAH MAGHRIB HARI INI -> Menuju Imsak Besok (Mode Biru)
                     mode = "night";
-                    targetTime = nextImsak; // Imsak terdekat pasti besok
+                    targetTime = nextImsak; 
                     statusLabel.textContent = "WAKTU ISTIRAHAT/SAHUR";
-                    statusIcon.textContent = "🌙"; // Bulan
+                    statusIcon.textContent = "🌙"; 
                     bodyEl.className = "night";
                 } else {
-                    // BELUM IMSAK HARI INI (Dini hari) -> Menuju Imsak Hari Ini
                     mode = "night";
                     targetTime = todayImsak;
                     statusLabel.textContent = "MENUJU IMSAK";
@@ -189,27 +270,30 @@
                     bodyEl.className = "night";
                 }
             } else {
-                // Di luar tanggal di atas
                 mode = "past";
                 statusLabel.textContent = "JADWAL SELESAI";
                 bodyEl.className = "";
             }
 
-            // Update Timer
             if (targetTime) {
-                const diff = targetTime - now;
-                const h = Math.floor(diff / (1000 * 60 * 60));
-                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const s = Math.floor((diff % (1000 * 60)) / 1000);
-                mainTimer.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                
-                // Update Target Jam Kecil di bawah
-                const jam = targetTime.getHours().toString().padStart(2,'0');
-                const menit = targetTime.getMinutes().toString().padStart(2,'0');
-                targetClock.textContent = `Target: ${jam}.${menit}`;
+                mainTimer.textContent = formatTimeDiff(targetTime - now);
+                targetClock.textContent = `Target: ${formatClock(targetTime)}`;
             } else {
                 mainTimer.textContent = "00:00:00";
                 targetClock.textContent = "-";
+            }
+
+            // 3. UPDATE LOGIKA SOLAT BERIKUTNYA
+            const nextPrayer = allPrayers.find(p => p.time > now);
+
+            if (nextPrayer) {
+                elNextPrayerLabel.textContent = `MENUJU ${nextPrayer.name.toUpperCase()}`;
+                elNextPrayerTimer.textContent = formatTimeDiff(nextPrayer.time - now);
+                elNextPrayerClock.textContent = `Waktu: ${formatClock(nextPrayer.time)}`;
+            } else {
+                elNextPrayerLabel.textContent = "JADWAL SOLAT SELESAI";
+                elNextPrayerTimer.textContent = "00:00:00";
+                elNextPrayerClock.textContent = "-";
             }
         }
 
@@ -217,5 +301,4 @@
         updateWidget();
     </script>
 </body>
-
 </html>
