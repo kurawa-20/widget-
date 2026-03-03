@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jadwal Puasa & Solat</title>
+    
+    <meta name="theme-color" content="#0f5132">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/0f5132/ffffff?text=P">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
+
+        :root {
+            --primary: #0f5132;
+            --gold: #c5a059;
+            --fasting-bg: #b2ff59; 
+            --night-bg: #e3f2fd;   
+            --past-bg: #eeeeee;    
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+            background-color: var(--past-bg);
+            transition: background-color 0.5s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* State Classes */
+        body.fasting { background-color: var(--fasting-bg); }
+        body.night { background-color: var(--night-bg); }
+        
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .header-info {
+            background: rgba(255, 255, 255, 0.4);
+            padding: 15px 20px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .current-date {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+        }
+        .current-time {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 1px;
+        }
+
+        .label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .timer {
+            font-size: 42px;
+            font-weight: 800;
+            line-height: 1;
+            color: #2c3e50;
+        }
+        .target-time {
+            font-size: 13px;
+            background: rgba(0,0,0,0.08);
+            padding: 4px 12px;
+            border-radius: 12px;
+            margin-top: 10px;
+            display: inline-block;
+            color: #333;
+            font-weight: 600;
+        }
+        .icon { font-size: 40px; margin-bottom: 10px; display: block; }
+
+        .divider {
+            height: 1px;
+            background: rgba(0, 0, 0, 0.1);
+            margin: 30px 0;
+            width: 70%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .prayer-widget .label {
+            color: #e67e22;
+        }
+        .prayer-timer {
+            font-size: 32px;
+            color: #d35400;
+        }
+    </style>
+</head>
+<body id="bodyWidget">
+
+    <div class="container">
+        <div class="header-info">
+            <div class="current-date" id="currentDate">Memuat tanggal...</div>
+            <div class="current-time" id="currentTime">--:--:--</div>
+        </div>
+
+        <span class="icon" id="statusIcon">⏳</span>
+        <div class="label" id="statusLabel">Memuat...</div>
+        <div class="timer" id="mainTimer">--:--:--</div>
+        <div class="target-time" id="targetClock">--:--</div>
+
+        <div class="divider"></div>
+
+        <div class="prayer-widget">
+            <div class="label" id="nextPrayerLabel">MENUJU SOLAT...</div>
+            <div class="timer prayer-timer" id="nextPrayerTimer">--:--:--</div>
+            <div class="target-time" id="nextPrayerClock">--:--</div>
+        </div>
+    </div>
+
+    <script>
+        // SCRIPT SERVICE WORKER REGISTRATION
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+            .then(() => console.log("Service Worker Registered"))
+            .catch(err => console.log("SW Registration Failed", err));
+        }
+
+        // DATA JADWAL (Tetap menggunakan data kamu)
+        const scheduleData = [
+            { r: 1, d: "Kamis, 19 Feb", im: "04.28", su: "04.38", zu: "12.07", as: "15.16", ma: "18.20", is: "19.26" },
+            { r: 2, d: "Jumat, 20 Feb", im: "04.28", su: "04.38", zu: "12.07", as: "15.15", ma: "18.19", is: "19.25" },
+            { r: 3, d: "Sabtu, 21 Feb", im: "04.28", su: "04.38", zu: "12.07", as: "15.15", ma: "18.19", is: "19.25" },
+            { r: 4, d: "Minggu, 22 Feb", im: "04.28", su: "04.38", zu: "12.07", as: "15.14", ma: "18.19", is: "19.24" },
+            { r: 5, d: "Senin, 23 Feb", im: "04.28", su: "04.38", zu: "12.06", as: "15.13", ma: "18.18", is: "19.24" },
+            { r: 6, d: "Selasa, 24 Feb", im: "04.28", su: "04.38", zu: "12.06", as: "15.12", ma: "18.18", is: "19.24" },
+            { r: 7, d: "Rabu, 25 Feb", im: "04.29", su: "04.39", zu: "12.06", as: "15.11", ma: "18.18", is: "19.23" },
+            { r: 8, d: "Kamis, 26 Feb", im: "04.29", su: "04.39", zu: "12.06", as: "15.10", ma: "18.17", is: "19.23" },
+            { r: 9, d: "Jumat, 27 Feb", im: "04.29", su: "04.39", zu: "12.06", as: "15.09", ma: "18.17", is: "19.22" },
+            { r: 10, d: "Sabtu, 28 Feb", im: "04.29", su: "04.39", zu: "12.06", as: "15.08", ma: "18.17", is: "19.22" },
+            { r: 11, d: "Minggu, 1 Mar", im: "04.29", su: "04.39", zu: "12.05", as: "15.07", ma: "18.16", is: "19.21" },
+            { r: 12, d: "Senin, 2 Mar", im: "04.29", su: "04.39", zu: "12.05", as: "15.06", ma: "18.16", is: "19.21" },
+            { r: 13, d: "Selasa, 3 Mar", im: "04.29", su: "04.39", zu: "12.05", as: "15.05", ma: "18.15", is: "19.20" },
+            { r: 14, d: "Rabu, 4 Mar", im: "04.29", su: "04.39", zu: "12.05", as: "15.06", ma: "18.15", is: "19.20" },
+            { r: 15, d: "Kamis, 5 Mar", im: "04.29", su: "04.39", zu: "12.05", as: "15.06", ma: "18.15", is: "19.20" },
+            { r: 16, d: "Jumat, 6 Mar", im: "04.29", su: "04.39", zu: "12.04", as: "15.07", ma: "18.14", is: "19.19" },
+            { r: 17, d: "Sabtu, 7 Mar", im: "04.29", su: "04.39", zu: "12.04", as: "15.07", ma: "18.14", is: "19.19" },
+            { r: 18, d: "Minggu, 8 Mar", im: "04.29", su: "04.39", zu: "12.04", as: "15.08", ma: "18.13", is: "19.18" },
+            { r: 19, d: "Senin, 9 Mar", im: "04.29", su: "04.39", zu: "12.04", as: "15.08", ma: "18.13", is: "19.18" },
+            { r: 20, d: "Selasa, 10 Mar", im: "04.29", su: "04.39", zu: "12.03", as: "15.08", ma: "18.12", is: "19.17" },
+            { r: 21, d: "Rabu, 11 Mar", im: "04.29", su: "04.39", zu: "12.03", as: "15.09", ma: "18.12", is: "19.17" },
+            { r: 22, d: "Kamis, 12 Mar", im: "04.29", su: "04.39", zu: "12.03", as: "15.09", ma: "18.11", is: "19.16" },
+            { r: 23, d: "Jumat, 13 Mar", im: "04.29", su: "04.39", zu: "12.03", as: "15.09", ma: "18.11", is: "19.16" },
+            { r: 24, d: "Sabtu, 14 Mar", im: "04.29", su: "04.39", zu: "12.02", as: "15.09", ma: "18.10", is: "19.15" },
+            { r: 25, d: "Minggu, 15 Mar", im: "04.29", su: "04.39", zu: "12.02", as: "15.10", ma: "18.10", is: "19.15" },
+            { r: 26, d: "Senin, 16 Mar", im: "04.29", su: "04.39", zu: "12.02", as: "15.10", ma: "18.10", is: "19.14" },
+            { r: 27, d: "Selasa, 17 Mar", im: "04.29", su: "04.39", zu: "12.01", as: "15.10", ma: "18.09", is: "19.14" },
+            { r: 28, d: "Rabu, 18 Mar", im: "04.29", su: "04.39", zu: "12.01", as: "15.10", ma: "18.09", is: "19.13" },
+            { r: 29, d: "Kamis, 19 Mar", im: "04.29", su: "04.39", zu: "12.01", as: "15.11", ma: "18.08", is: "19.13" },
+            { r: 30, d: "Jumat, 20 Mar", im: "04.29", su: "04.39", zu: "12.01", as: "15.11", ma: "18.08", is: "19.12" }
+        ];
+
+        function parseDateTime(dateString, timeString) {
+            if (!timeString) return null;
+            const parts = dateString.split(' ');
+            if (parts.length < 3) return null;
+            const day = parseInt(parts[1], 10);
+            const monthMap = { "Jan": 0, "Feb": 1, "Mar": 2, "Apr": 3 };
+            const month = monthMap[parts[2]];
+            const today = new Date();
+            const year = today.getFullYear();
+            const timeParts = timeString.split('.');
+            return new Date(year, month, day, parseInt(timeParts[0]), parseInt(timeParts[1]), 0);
+        }
+
+        const bodyEl = document.getElementById('bodyWidget');
+        const statusLabel = document.getElementById('statusLabel');
+        const statusIcon = document.getElementById('statusIcon');
+        const mainTimer = document.getElementById('mainTimer');
+        const targetClock = document.getElementById('targetClock');
+        
+        const elDate = document.getElementById('currentDate');
+        const elTime = document.getElementById('currentTime');
+        const elNextPrayerLabel = document.getElementById('nextPrayerLabel');
+        const elNextPrayerTimer = document.getElementById('nextPrayerTimer');
+        const elNextPrayerClock = document.getElementById('nextPrayerClock');
+
+        const allImsakTimes = [];
+        const allMaghribTimes = [];
+        const allPrayers = [];
+        
+        scheduleData.forEach((item) => {
+            const im = parseDateTime(item.d, item.im);
+            const su = parseDateTime(item.d, item.su);
+            const zu = parseDateTime(item.d, item.zu);
+            const as = parseDateTime(item.d, item.as);
+            const ma = parseDateTime(item.d, item.ma);
+            const is = parseDateTime(item.d, item.is);
+
+            if(im) allImsakTimes.push(im);
+            if(ma) allMaghribTimes.push(ma);
+
+            if(su) allPrayers.push({ name: 'Subuh', time: su });
+            if(zu) allPrayers.push({ name: 'Zuhur', time: zu });
+            if(as) allPrayers.push({ name: 'Ashar', time: as });
+            if(ma) allPrayers.push({ name: 'Magrib', time: ma });
+            if(is) allPrayers.push({ name: 'Isya', time: is });
+        });
+
+        allPrayers.sort((a, b) => a.time - b.time);
+
+        function formatTimeDiff(diff) {
+            if (diff < 0) return "00:00:00";
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function formatClock(dateObj) {
+            return `${dateObj.getHours().toString().padStart(2,'0')}.${dateObj.getMinutes().toString().padStart(2,'0')}`;
+        }
+
+        function updateWidget() {
+            const now = new Date();
+            const optionsDate = { weekday: 'long', day: 'numeric', month: 'long' };
+            elDate.textContent = now.toLocaleDateString('id-ID', optionsDate);
+            elTime.textContent = now.toLocaleTimeString('id-ID', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/:/g, '.');
+
+            let targetTime = null;
+            const nextImsak = allImsakTimes.find(t => t > now);
+            const todayMaghrib = allMaghribTimes.find(t => t.getDate() === now.getDate() && t.getMonth() === now.getMonth());
+            const todayImsak = allImsakTimes.find(t => t.getDate() === now.getDate() && t.getMonth() === now.getMonth());
+
+            if (todayImsak && now >= todayImsak && todayMaghrib && now < todayMaghrib) {
+                targetTime = todayMaghrib;
+                statusLabel.textContent = "MENUJU BERBUKA";
+                statusIcon.textContent = "🕌"; 
+                bodyEl.className = "fasting";
+            } else {
+                targetTime = nextImsak || (todayImsak && now < todayImsak ? todayImsak : null);
+                statusLabel.textContent = (now.getHours() >= 1 && now.getHours() <= 4) ? "WAKTU SAHUR" : "MENUJU IMSAK";
+                statusIcon.textContent = "🌙"; 
+                bodyEl.className = "night";
+            }
+
+            if (targetTime) {
+                mainTimer.textContent = formatTimeDiff(targetTime - now);
+                targetClock.textContent = `Target: ${formatClock(targetTime)}`;
+            }
+
+            const nextPrayer = allPrayers.find(p => p.time > now);
+            if (nextPrayer) {
+                elNextPrayerLabel.textContent = `MENUJU ${nextPrayer.name.toUpperCase()}`;
+                elNextPrayerTimer.textContent = formatTimeDiff(nextPrayer.time - now);
+                elNextPrayerClock.textContent = `Waktu: ${formatClock(nextPrayer.time)}`;
+            }
+        }
+
+        setInterval(updateWidget, 1000);
+        updateWidget();
+    </script>
+</body>
+</html>
