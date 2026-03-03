@@ -2,17 +2,24 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Widget Jadwal Puasa & Solat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jadwal Puasa & Solat</title>
+    
+    <meta name="theme-color" content="#0f5132">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/0f5132/ffffff?text=P">
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
 
         :root {
             --primary: #0f5132;
             --gold: #c5a059;
-            --fasting-bg: #b2ff59; /* Hijau (Puasa) */
-            --night-bg: #e3f2fd;   /* Biru (Malam) */
-            --past-bg: #eeeeee;    /* Abu (Lewat) */
+            --fasting-bg: #b2ff59; 
+            --night-bg: #e3f2fd;   
+            --past-bg: #eeeeee;    
         }
 
         body {
@@ -28,6 +35,7 @@
             overflow: hidden;
             background-color: var(--past-bg);
             transition: background-color 0.5s ease;
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* State Classes */
@@ -41,13 +49,12 @@
             box-sizing: border-box;
         }
 
-        /* Header: Tanggal & Jam Sekarang */
         .header-info {
             background: rgba(255, 255, 255, 0.4);
-            padding: 10px 20px;
-            border-radius: 15px;
+            padding: 15px 20px;
+            border-radius: 20px;
             margin-bottom: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
         .current-date {
             font-size: 14px;
@@ -56,14 +63,12 @@
             text-transform: uppercase;
         }
         .current-time {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: 800;
             color: var(--primary);
             letter-spacing: 1px;
-            margin-top: -2px;
         }
 
-        /* Widget Utama (Imsak/Magrib) */
         .label {
             font-size: 13px;
             text-transform: uppercase;
@@ -73,40 +78,37 @@
             margin-bottom: 5px;
         }
         .timer {
-            font-size: 38px;
+            font-size: 42px;
             font-weight: 800;
             line-height: 1;
             color: #2c3e50;
         }
         .target-time {
-            font-size: 12px;
-            background: rgba(0,0,0,0.05);
-            padding: 3px 10px;
-            border-radius: 10px;
-            margin-top: 8px;
+            font-size: 13px;
+            background: rgba(0,0,0,0.08);
+            padding: 4px 12px;
+            border-radius: 12px;
+            margin-top: 10px;
             display: inline-block;
-            color: #555;
+            color: #333;
             font-weight: 600;
         }
-        .icon { font-size: 30px; margin-bottom: 5px; display: block; }
+        .icon { font-size: 40px; margin-bottom: 10px; display: block; }
 
-        /* Separator */
         .divider {
             height: 1px;
             background: rgba(0, 0, 0, 0.1);
-            margin: 25px 0;
-            width: 80%;
+            margin: 30px 0;
+            width: 70%;
             margin-left: auto;
             margin-right: auto;
         }
 
-        /* Widget Sekunder (Waktu Solat Berikutnya) */
         .prayer-widget .label {
             color: #e67e22;
-            font-size: 12px;
         }
         .prayer-timer {
-            font-size: 28px;
+            font-size: 32px;
             color: #d35400;
         }
     </style>
@@ -134,7 +136,14 @@
     </div>
 
     <script>
-        // DATA JADWAL LENGKAP
+        // SCRIPT SERVICE WORKER REGISTRATION
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+            .then(() => console.log("Service Worker Registered"))
+            .catch(err => console.log("SW Registration Failed", err));
+        }
+
+        // DATA JADWAL (Tetap menggunakan data kamu)
         const scheduleData = [
             { r: 1, d: "Kamis, 19 Feb", im: "04.28", su: "04.38", zu: "12.07", as: "15.16", ma: "18.20", is: "19.26" },
             { r: 2, d: "Jumat, 20 Feb", im: "04.28", su: "04.38", zu: "12.07", as: "15.15", ma: "18.19", is: "19.25" },
@@ -193,37 +202,35 @@
         const elNextPrayerTimer = document.getElementById('nextPrayerTimer');
         const elNextPrayerClock = document.getElementById('nextPrayerClock');
 
-        // Parse Data
         const allImsakTimes = [];
         const allMaghribTimes = [];
         const allPrayers = [];
         
         scheduleData.forEach((item) => {
-            const imsak = parseDateTime(item.d, item.im);
-            const subuh = parseDateTime(item.d, item.su);
-            const zuhur = parseDateTime(item.d, item.zu); // Menggunakan item.zu dari data kamu
-            const ashar = parseDateTime(item.d, item.as);
-            const maghrib = parseDateTime(item.d, item.ma);
-            const isya = parseDateTime(item.d, item.is);
+            const im = parseDateTime(item.d, item.im);
+            const su = parseDateTime(item.d, item.su);
+            const zu = parseDateTime(item.d, item.zu);
+            const as = parseDateTime(item.d, item.as);
+            const ma = parseDateTime(item.d, item.ma);
+            const is = parseDateTime(item.d, item.is);
 
-            if(imsak) allImsakTimes.push(imsak);
-            if(maghrib) allMaghribTimes.push(maghrib);
+            if(im) allImsakTimes.push(im);
+            if(ma) allMaghribTimes.push(ma);
 
-            // Masukkan ke array jadwal solat harian untuk countdown yang terpisah
-            if(subuh) allPrayers.push({ name: 'Subuh', time: subuh });
-            if(zuhur) allPrayers.push({ name: 'Zuhur', time: zuhur });
-            if(ashar) allPrayers.push({ name: 'Ashar', time: ashar });
-            if(maghrib) allPrayers.push({ name: 'Magrib', time: maghrib });
-            if(isya) allPrayers.push({ name: 'Isya', time: isya });
+            if(su) allPrayers.push({ name: 'Subuh', time: su });
+            if(zu) allPrayers.push({ name: 'Zuhur', time: zu });
+            if(as) allPrayers.push({ name: 'Ashar', time: as });
+            if(ma) allPrayers.push({ name: 'Magrib', time: ma });
+            if(is) allPrayers.push({ name: 'Isya', time: is });
         });
 
-        // Urutkan semua jadwal solat dari waktu terawal hingga terakhir
         allPrayers.sort((a, b) => a.time - b.time);
 
         function formatTimeDiff(diff) {
-            const h = Math.floor(diff / (1000 * 60 * 60));
-            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((diff % (1000 * 60)) / 1000);
+            if (diff < 0) return "00:00:00";
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
             return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
@@ -233,67 +240,37 @@
 
         function updateWidget() {
             const now = new Date();
-
-            // 1. UPDATE TANGGAL & JAM SEKARANG
-            const optionsDate = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            const optionsDate = { weekday: 'long', day: 'numeric', month: 'long' };
             elDate.textContent = now.toLocaleDateString('id-ID', optionsDate);
-            elTime.textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            elTime.textContent = now.toLocaleTimeString('id-ID', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/:/g, '.');
 
-            // 2. UPDATE LOGIKA UTAMA (IMSAK / MAGRIB)
             let targetTime = null;
-            let mode = ""; 
-
             const nextImsak = allImsakTimes.find(t => t > now);
-            const nextMaghrib = allMaghribTimes.find(t => t > now);
-
             const todayMaghrib = allMaghribTimes.find(t => t.getDate() === now.getDate() && t.getMonth() === now.getMonth());
             const todayImsak = allImsakTimes.find(t => t.getDate() === now.getDate() && t.getMonth() === now.getMonth());
 
-            if (todayImsak && todayMaghrib) {
-                if (now >= todayImsak && now < todayMaghrib) {
-                    mode = "fasting";
-                    targetTime = todayMaghrib;
-                    statusLabel.textContent = "MENUJU BERBUKA";
-                    statusIcon.textContent = "🕌"; 
-                    bodyEl.className = "fasting";
-                } else if (now >= todayMaghrib) {
-                    mode = "night";
-                    targetTime = nextImsak; 
-                    statusLabel.textContent = "WAKTU ISTIRAHAT/SAHUR";
-                    statusIcon.textContent = "🌙"; 
-                    bodyEl.className = "night";
-                } else {
-                    mode = "night";
-                    targetTime = todayImsak;
-                    statusLabel.textContent = "MENUJU IMSAK";
-                    statusIcon.textContent = "🍽️";
-                    bodyEl.className = "night";
-                }
+            if (todayImsak && now >= todayImsak && todayMaghrib && now < todayMaghrib) {
+                targetTime = todayMaghrib;
+                statusLabel.textContent = "MENUJU BERBUKA";
+                statusIcon.textContent = "🕌"; 
+                bodyEl.className = "fasting";
             } else {
-                mode = "past";
-                statusLabel.textContent = "JADWAL SELESAI";
-                bodyEl.className = "";
+                targetTime = nextImsak || (todayImsak && now < todayImsak ? todayImsak : null);
+                statusLabel.textContent = (now.getHours() >= 1 && now.getHours() <= 4) ? "WAKTU SAHUR" : "MENUJU IMSAK";
+                statusIcon.textContent = "🌙"; 
+                bodyEl.className = "night";
             }
 
             if (targetTime) {
                 mainTimer.textContent = formatTimeDiff(targetTime - now);
                 targetClock.textContent = `Target: ${formatClock(targetTime)}`;
-            } else {
-                mainTimer.textContent = "00:00:00";
-                targetClock.textContent = "-";
             }
 
-            // 3. UPDATE LOGIKA SOLAT BERIKUTNYA
             const nextPrayer = allPrayers.find(p => p.time > now);
-
             if (nextPrayer) {
                 elNextPrayerLabel.textContent = `MENUJU ${nextPrayer.name.toUpperCase()}`;
                 elNextPrayerTimer.textContent = formatTimeDiff(nextPrayer.time - now);
                 elNextPrayerClock.textContent = `Waktu: ${formatClock(nextPrayer.time)}`;
-            } else {
-                elNextPrayerLabel.textContent = "JADWAL SOLAT SELESAI";
-                elNextPrayerTimer.textContent = "00:00:00";
-                elNextPrayerClock.textContent = "-";
             }
         }
 
