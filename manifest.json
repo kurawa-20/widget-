@@ -1,20 +1,19 @@
 {
   "name": "Jadwal Puasa & Solat",
-  "short_name": "JadwalPuasa",
-  "description": "Widget hitung mundur Imsak, Berbuka, dan Waktu Solat",
-  "start_url": "index.html",
+  "short_name": "Puasa",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f5132",
   "theme_color": "#0f5132",
-  "orientation": "portrait",
   "icons": [
     {
-      "src": "https://via.placeholder.com/192/0f5132/ffffff?text=🕌",
+      "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://via.placeholder.com/512/0f5132/ffffff?text=🕌",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
